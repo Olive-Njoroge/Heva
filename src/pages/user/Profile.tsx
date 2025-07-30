@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { Save, User, Briefcase, MapPin, Calendar, Instagram, Globe, Music } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, User, Briefcase, MapPin, Calendar, Instagram, Globe, Music, CheckCircle, Clock, Circle } from 'lucide-react';
 import { Layout } from '../../components/shared/Layout';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -16,14 +18,35 @@ export function Profile() {
     industry: user?.industry || '',
     location: user?.location || '',
     yearsInBusiness: user?.yearsInBusiness || 0,
-    phone: '',
-    website: '',
-    instagram: '',
-    linkedin: '',
-    bio: '',
-    specialties: [] as string[],
-    revenueModel: 'project-based'
+    phone: user?.phone || '',
+    website: user?.website || '',
+    instagram: user?.instagram || '',
+    linkedin: user?.linkedin || '',
+    bio: user?.bio || '',
+    specialties: user?.specialties || [],
+    revenueModel: user?.revenueModel || 'project-based'
   });
+
+  // Update form data when user changes (e.g., after login)
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        businessName: user.businessName || '',
+        industry: user.industry || '',
+        location: user.location || '',
+        yearsInBusiness: user.yearsInBusiness || 0,
+        phone: user.phone || '',
+        website: user.website || '',
+        instagram: user.instagram || '',
+        linkedin: user.linkedin || '',
+        bio: user.bio || '',
+        specialties: user.specialties || [],
+        revenueModel: user.revenueModel || 'project-based'
+      });
+    }
+  }, [user]);
 
   const industries = [
     'Fashion', 'Film', 'Music', 'Digital Art', 'Performing Arts', 'Visual Arts',
@@ -41,37 +64,91 @@ export function Profile() {
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
+    setSaveMessage(''); // Clear any previous save messages
   };
 
-  const handleSave = () => {
-    // Simulate API call
-    setTimeout(() => {
-      setIsEditing(false);
-      setHasChanges(false);
-      alert('Profile updated successfully!');
-    }, 1000);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      // Update the user data
+      const success = await updateUser({
+        ...formData,
+        lastActivity: new Date().toISOString()
+      });
+
+      if (success) {
+        setIsEditing(false);
+        setHasChanges(false);
+        setSaveMessage('Profile updated successfully!');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        setSaveMessage('Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      setSaveMessage('An error occurred while saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setHasChanges(false);
-    // Reset form data
-    setFormData({
-      name: user?.name || '',
-      email: user?.email || '',
-      businessName: user?.businessName || '',
-      industry: user?.industry || '',
-      location: user?.location || '',
-      yearsInBusiness: user?.yearsInBusiness || 0,
-      phone: '',
-      website: '',
-      instagram: '',
-      linkedin: '',
-      bio: '',
-      specialties: [],
-      revenueModel: 'project-based'
-    });
+    setSaveMessage('');
+    
+    // Reset form data to original user data
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        businessName: user.businessName || '',
+        industry: user.industry || '',
+        location: user.location || '',
+        yearsInBusiness: user.yearsInBusiness || 0,
+        phone: user.phone || '',
+        website: user.website || '',
+        instagram: user.instagram || '',
+        linkedin: user.linkedin || '',
+        bio: user.bio || '',
+        specialties: user.specialties || [],
+        revenueModel: user.revenueModel || 'project-based'
+      });
+    }
   };
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = () => {
+    const requiredFields = [
+      'name', 'email', 'businessName', 'industry', 'location', 'bio'
+    ];
+    const optionalFields = [
+      'phone', 'website', 'instagram', 'linkedin'
+    ];
+    
+    const completedRequired = requiredFields.filter(field => 
+      formData[field as keyof typeof formData] && 
+      String(formData[field as keyof typeof formData]).trim() !== ''
+    ).length;
+    
+    const completedOptional = optionalFields.filter(field => 
+      formData[field as keyof typeof formData] && 
+      String(formData[field as keyof typeof formData]).trim() !== ''
+    ).length;
+    
+    const requiredWeight = 70; // Required fields are worth 70%
+    const optionalWeight = 30; // Optional fields are worth 30%
+    
+    const requiredPercentage = (completedRequired / requiredFields.length) * requiredWeight;
+    const optionalPercentage = (completedOptional / optionalFields.length) * optionalWeight;
+    
+    return Math.round(requiredPercentage + optionalPercentage);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
 
   return (
     <Layout isAdmin={false}>
@@ -86,12 +163,17 @@ export function Profile() {
           <div className="flex space-x-3">
             {isEditing ? (
               <>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                   Cancel
                 </Button>
-                <Button variant="primary" onClick={handleSave} disabled={!hasChanges}>
+                <Button 
+                  variant="primary" 
+                  onClick={handleSave} 
+                  disabled={!hasChanges || isSaving}
+                  isLoading={isSaving}
+                >
                   <Save size={16} className="mr-2" />
-                  Save Changes
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </>
             ) : (
@@ -102,6 +184,17 @@ export function Profile() {
           </div>
         </div>
 
+        {/* Save Success/Error Message */}
+        {saveMessage && (
+          <div className={`p-4 rounded-lg ${
+            saveMessage.includes('successfully') 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {saveMessage}
+          </div>
+        )}
+
         {/* Profile Overview */}
         <Card>
           <div className="flex items-center space-x-6">
@@ -109,16 +202,16 @@ export function Profile() {
               <User size={32} className="text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">{formData.name}</h2>
-              <p className="text-gray-600">{formData.businessName}</p>
+              <h2 className="text-xl font-semibold text-gray-900">{formData.name || 'Name not set'}</h2>
+              <p className="text-gray-600">{formData.businessName || 'Business name not set'}</p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                 <div className="flex items-center space-x-1">
                   <Briefcase size={14} />
-                  <span>{formData.industry}</span>
+                  <span>{formData.industry || 'Industry not set'}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <MapPin size={14} />
-                  <span>{formData.location}</span>
+                  <span>{formData.location || 'Location not set'}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Calendar size={14} />
@@ -142,7 +235,7 @@ export function Profile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
+                Full Name *
               </label>
               <input
                 type="text"
@@ -155,7 +248,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Email Address *
               </label>
               <input
                 type="email"
@@ -182,7 +275,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+                Location *
               </label>
               <input
                 type="text"
@@ -197,7 +290,7 @@ export function Profile() {
 
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bio
+              Bio *
             </label>
             <textarea
               value={formData.bio}
@@ -217,7 +310,7 @@ export function Profile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Business Name
+                Business Name *
               </label>
               <input
                 type="text"
@@ -230,7 +323,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Industry
+                Industry *
               </label>
               <select
                 value={formData.industry}
@@ -339,32 +432,47 @@ export function Profile() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Profile completeness</span>
-              <span className="text-sm font-medium">85%</span>
+              <span className="text-sm font-medium">{profileCompletion}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${profileCompletion}%` }}
+              ></div>
             </div>
             
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center text-green-600">
-                <div className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
-                  <span className="text-xs text-white">✓</span>
-                </div>
+              <div className={`flex items-center ${formData.name && formData.email ? 'text-green-600' : 'text-gray-400'}`}>
+                {formData.name && formData.email ? (
+                  <CheckCircle size={16} className="mr-2" />
+                ) : (
+                  <Circle size={16} className="mr-2" />
+                )}
                 Basic information completed
               </div>
-              <div className="flex items-center text-green-600">
-                <div className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
-                  <span className="text-xs text-white">✓</span>
-                </div>
+              <div className={`flex items-center ${formData.businessName && formData.industry ? 'text-green-600' : 'text-gray-400'}`}>
+                {formData.businessName && formData.industry ? (
+                  <CheckCircle size={16} className="mr-2" />
+                ) : (
+                  <Circle size={16} className="mr-2" />
+                )}
                 Business details added
               </div>
-              <div className="flex items-center text-yellow-600">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
-                Upload portfolio samples
+              <div className={`flex items-center ${formData.bio ? 'text-green-600' : 'text-yellow-600'}`}>
+                {formData.bio ? (
+                  <CheckCircle size={16} className="mr-2" />
+                ) : (
+                  <Clock size={16} className="mr-2" />
+                )}
+                Professional bio {formData.bio ? 'completed' : 'needed'}
               </div>
-              <div className="flex items-center text-gray-400">
-                <div className="w-4 h-4 bg-gray-300 rounded-full mr-2"></div>
-                Connect social media accounts
+              <div className={`flex items-center ${formData.website || formData.instagram || formData.linkedin ? 'text-green-600' : 'text-gray-400'}`}>
+                {formData.website || formData.instagram || formData.linkedin ? (
+                  <CheckCircle size={16} className="mr-2" />
+                ) : (
+                  <Circle size={16} className="mr-2" />
+                )}
+                Online presence {formData.website || formData.instagram || formData.linkedin ? 'connected' : 'needed'}
               </div>
             </div>
           </div>

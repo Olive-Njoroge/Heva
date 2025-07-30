@@ -6,29 +6,80 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
 export function Login() {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'admin' | 'user'>('user');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setFirstName('');
+    setLastName('');
+    setRole('user');
+    setError('');
+    setSuccess('');
+  };
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    resetForm();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const success = await login(email, password, role);
-      if (success) {
-        navigate(role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+      if (isLogin) {
+        // Login logic
+        const success = await login(email, password, role);
+        if (success) {
+          navigate(role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+        } else {
+          setError('Invalid credentials. Please try again.');
+        }
       } else {
-        setError('Invalid credentials. Please try again.');
+        // Registration logic
+        if (password !== confirmPassword) {
+          setError('Passwords do not match.');
+          return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long.');
+          return;
+        }
+
+        const success = await register({
+          email,
+          password,
+          firstName,
+          lastName,
+          role
+        });
+        
+        if (success) {
+          setSuccess('Account created successfully! You can now sign in.');
+          setIsLogin(true);
+          resetForm();
+        } else {
+          setError('Registration failed. Email may already be in use.');
+        }
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError(isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -69,13 +120,57 @@ export function Login() {
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
-              <p className="text-gray-600">Sign in to your account</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {isLogin ? 'Welcome Back' : 'Create Account'}
+              </h2>
+              <p className="text-gray-600">
+                {isLogin ? 'Sign in to your account' : 'Join HEVA to get started'}
+              </p>
             </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                {success}
+              </div>
+            )}
+
+            {/* Name fields for registration */}
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="First name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Last name"
+                  />
+                </div>
               </div>
             )}
 
@@ -138,7 +233,30 @@ export function Login() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your password"
               />
+              {!isLogin && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Password must be at least 6 characters long
+                </p>
+              )}
             </div>
+
+            {/* Confirm Password for registration */}
+            {!isLogin && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Confirm your password"
+                />
+              </div>
+            )}
 
             {/* Submit Button */}
             <Button
@@ -147,35 +265,51 @@ export function Login() {
               className="w-full"
               size="lg"
             >
-              Sign In
+              {isLogin ? 'Sign In' : 'Create Account'}
             </Button>
 
-            {/* Demo Buttons */}
-            <div className="border-t border-gray-200 pt-6">
-              <p className="text-sm text-gray-600 text-center mb-4">
-                Try the demo with sample credentials:
-              </p>
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('admin')}
-                  className="w-full"
-                  size="sm"
-                >
-                  Demo as Administrator
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('user')}
-                  className="w-full"
-                  size="sm"
-                >
-                  Demo as Creative Professional
-                </Button>
-              </div>
+            {/* Toggle between login and register */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                {isLogin 
+                  ? "Don't have an account? Create one" 
+                  : "Already have an account? Sign in"
+                }
+              </button>
             </div>
+
+            {/* Demo Buttons - only show for login */}
+            {isLogin && (
+              <div className="border-t border-gray-200 pt-6">
+                <p className="text-sm text-gray-600 text-center mb-4">
+                  Try the demo with sample credentials:
+                </p>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials('admin')}
+                    className="w-full"
+                    size="sm"
+                  >
+                    Demo as Administrator
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials('user')}
+                    className="w-full"
+                    size="sm"
+                  >
+                    Demo as Creative Professional
+                  </Button>
+                </div>
+              </div>
+            )}
           </form>
         </Card>
 
