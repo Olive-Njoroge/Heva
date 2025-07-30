@@ -149,7 +149,7 @@ export function Score() {
                         <span className={`text-4xl font-bold ${getScoreColor(currentScore)}`}>
                           {currentScore}
                         </span>
-                        <span className="text-sm text-gray-600 mt-1">{tier}</span>
+                        <span className="text-sm text-gray-600 mt-1">{tierInfo.tier}</span>
                       </div>
                     </div>
                   </div>
