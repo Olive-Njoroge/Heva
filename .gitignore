@@ -1,0 +1,39 @@
+# === Java / Spring Boot (Maven or Gradle) ===
+
+# Build directories
+/target
+/build
+.gradle/
+out/
+
+# Compiled class files
+*.class
+
+# Logs
+*.log
+logs/
+
+# IntelliJ IDEA files
+.idea/
+*.iml
+
+# VS Code settings
+.vscode/
+
+# Eclipse files
+.classpath
+.project
+.settings/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Optional: Exclude config files if they contain secrets
+# If you have secrets in them, exclude. If not, include safely.
+# Uncomment below only if you store passwords locally!
+# /src/main/resources/application.properties
+# /src/main/resources/application.yml
