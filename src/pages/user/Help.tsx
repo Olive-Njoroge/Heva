@@ -185,21 +185,21 @@ export function Help() {
             <MessageCircle size={32} className="text-blue-600 mx-auto mb-3" />
             <h3 className="font-semibold text-gray-900 mb-2">Live Chat</h3>
             <p className="text-sm text-gray-600 mb-4">Get instant help from our support team</p>
-            <Button variant="outline" size="sm">Start Chat</Button>
+            <Button variant="outline" size="sm" onClick={() => window.open('https://wa.me/+254714897692', '_blank')}>Start Chat</Button>
           </Card>
 
           <Card hover className="text-center cursor-pointer">
             <Mail size={32} className="text-green-600 mx-auto mb-3" />
             <h3 className="font-semibold text-gray-900 mb-2">Email Support</h3>
             <p className="text-sm text-gray-600 mb-4">Send us a detailed message</p>
-            <Button variant="outline" size="sm">Send Email</Button>
+            <Button variant="outline" size="sm" onClick={() => window.open('mailto:support@heva.com?subject=Support%20Request')}>Send Email</Button>
           </Card>
 
           <Card hover className="text-center cursor-pointer">
             <Phone size={32} className="text-purple-600 mx-auto mb-3" />
             <h3 className="font-semibold text-gray-900 mb-2">Phone Support</h3>
             <p className="text-sm text-gray-600 mb-4">Speak directly with our team</p>
-            <Button variant="outline" size="sm">Call Now</Button>
+            <Button variant="outline" size="sm" onClick={() => window.open('tel:+254714897692')}>Call Now</Button>
           </Card>
         </div>
 
@@ -381,7 +381,7 @@ export function Help() {
               <p className="text-sm text-gray-600">
                 We typically respond within 24 hours
               </p>
-              <Button type="submit" variant="primary">
+              <Button type="submit" variant="primary" onClick={() => window.open('https://wa.me/+254714897692', '_blank')}>
                 Send Message
               </Button>
             </div>

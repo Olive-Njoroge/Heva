@@ -6,6 +6,7 @@ import { Layout } from '../../components/shared/Layout';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRef } from 'react';
 
 // Mock data for user score history
 const scoreHistory = [
@@ -37,6 +38,22 @@ const industryInsights = [
 
 export function UserDashboard() {
   const { user } = useAuth();
+
+  const bankInputRef = useRef<HTMLInputElement>(null);
+  const portfolioInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBankUpload = () => {
+    bankInputRef.current?.click();
+  };
+
+  const handlePortfolioUpload = () => {
+    portfolioInputRef.current?.click();
+  };
+
+  const handleSocialConnect = () => {
+    // Replace with your actual social media OAuth URL
+    window.open('https://www.instagram.com/', '_blank');
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 750) return 'text-green-600';
@@ -275,21 +292,49 @@ export function UserDashboard() {
               <FileText size={24} className="text-blue-600 mx-auto mb-2" />
               <h4 className="font-medium text-gray-900 mb-1">Upload Bank Statement</h4>
               <p className="text-sm text-gray-600 mb-3">Latest 3 months required</p>
-              <Button variant="outline" size="sm">Upload Now</Button>
+              <Button variant="outline" size="sm" onClick={handleBankUpload}>Upload Now</Button>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.png"
+                style={{ display: 'none' }}
+                ref={bankInputRef}
+                onChange={e => {
+                  // Handle file upload here
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Upload logic or show a message
+                    alert(`Bank statement "${file.name}" selected!`);
+                  }
+                }}
+              />
             </div>
 
             <div className="p-4 border border-gray-200 rounded-lg text-center">
               <TrendingUp size={24} className="text-green-600 mx-auto mb-2" />
               <h4 className="font-medium text-gray-900 mb-1">Update Portfolio</h4>
               <p className="text-sm text-gray-600 mb-3">Add recent work samples</p>
-              <Button variant="outline" size="sm">Update Portfolio</Button>
+              <Button variant="outline" size="sm" onClick={handlePortfolioUpload}>Update Portfolio</Button>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.png"
+                style={{ display: 'none' }}
+                ref={portfolioInputRef}
+                onChange={e => {
+                  // Handle file upload here
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Upload logic or show a message
+                    alert(`Portfolio file "${file.name}" selected!`);
+                  }
+                }}
+              />
             </div>
 
             <div className="p-4 border border-gray-200 rounded-lg text-center">
               <CheckCircle size={24} className="text-purple-600 mx-auto mb-2" />
               <h4 className="font-medium text-gray-900 mb-1">Verify Social Media</h4>
               <p className="text-sm text-gray-600 mb-3">Connect Instagram account</p>
-              <Button variant="outline" size="sm">Connect Account</Button>
+              <Button variant="outline" size="sm" onClick={handleSocialConnect}>Connect Account</Button>
             </div>
           </div>
         </Card>
