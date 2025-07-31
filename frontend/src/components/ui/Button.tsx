@@ -1,10 +1,36 @@
+/**
+ * Button Component
+ * 
+ * A reusable button component with multiple variants, sizes, and loading states.
+ * Features smooth animations and accessibility support.
+ * 
+ * Features:
+ * - Multiple visual variants (primary, secondary, outline, ghost, danger)
+ * - Different sizes (sm, md, lg)
+ * - Loading state with spinner
+ * - Smooth hover and tap animations
+ * - Full accessibility support
+ * - TypeScript support with proper typing
+ * 
+ * @component
+ * @param {ButtonProps} props - Component properties
+ * @returns {JSX.Element} Rendered button component
+ */
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
+/**
+ * Props interface for the Button component
+ */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Visual variant of the button */
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  /** Size of the button */
   size?: 'sm' | 'md' | 'lg';
+  /** Whether the button is in loading state */
   isLoading?: boolean;
+  /** Button content */
   children: React.ReactNode;
 }
 

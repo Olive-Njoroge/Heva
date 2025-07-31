@@ -1,11 +1,31 @@
+/**
+ * Chat Service
+ * 
+ * Frontend service for communicating with the AI chatbot backend.
+ * Handles message sending, chat history retrieval, and API communication.
+ * 
+ * Features:
+ * - Message sending with timeout handling
+ * - Chat history retrieval with filtering options
+ * - Error handling and retry logic
+ * - TypeScript interfaces for type safety
+ * - Environment-based API URL configuration
+ */
+
 // Frontend API service for chatbot communication
 
+/**
+ * Interface for chat message requests
+ */
 export interface ChatMessage {
   message: string;
   userId?: string;
   conversationId?: string;
 }
 
+/**
+ * Interface for chat API responses
+ */
 export interface ChatResponse {
   success: boolean;
   response?: string;
@@ -15,6 +35,9 @@ export interface ChatResponse {
   details?: string;
 }
 
+/**
+ * Interface for chat history responses
+ */
 export interface ChatHistory {
   success: boolean;
   history?: Array<{
@@ -28,16 +51,26 @@ export interface ChatHistory {
   total?: number;
 }
 
+/**
+ * Chat service class for API communication
+ */
 class ChatService {
   private baseURL: string;
   private defaultTimeout: number = 30000; // 30 seconds
 
+  /**
+   * Initialize chat service with API base URL
+   * @param {string} baseURL - Base URL for the API (defaults to environment variable or localhost)
+   */
   constructor(baseURL: string = import.meta.env.VITE_API_URL || 'http://localhost:3001') {
     this.baseURL = baseURL;
   }
 
   /**
    * Send message to chatbot
+   * @param {ChatMessage} data - Message data including text and optional user/conversation IDs
+   * @returns {Promise<ChatResponse>} API response with bot's reply
+   * @throws {Error} When API call fails or times out
    */
   async sendMessage(data: ChatMessage): Promise<ChatResponse> {
     try {
@@ -73,6 +106,13 @@ class ChatService {
 
   /**
    * Get chat history
+   * Retrieves previous messages for a user or conversation
+   * @param {Object} params - Optional parameters for filtering history
+   * @param {string} params.userId - Filter by user ID
+   * @param {string} params.conversationId - Filter by conversation ID  
+   * @param {number} params.limit - Maximum number of messages to return
+   * @returns {Promise<ChatHistory>} Chat history data
+   * @throws {Error} When API call fails
    */
   async getChatHistory(params?: {
     userId?: string;
@@ -108,6 +148,9 @@ class ChatService {
 
   /**
    * Check API status
+   * Verifies if the chat API is online and responsive
+   * @returns {Promise<Object>} API status information
+   * @throws {Error} When status check fails
    */
   async checkStatus(): Promise<{ status: string; service: string; timestamp: string }> {
     try {

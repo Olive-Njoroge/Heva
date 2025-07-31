@@ -1,9 +1,17 @@
+/**
+ * Gemini AI Service
+ * Handles integration with Google's Gemini AI API for natural language processing
+ * Provides chat functionality with safety settings and error handling
+ */
+
 const axios = require('axios');
 
 /**
  * Call Gemini AI API with user message
- * @param {string} message - User's message
- * @returns {Promise<string>} - AI response
+ * Sends a message to Google's Gemini AI and returns the response
+ * @param {string} message - User's message to send to the AI
+ * @returns {Promise<string>} - AI-generated response text
+ * @throws {Error} - Throws error if API call fails or returns invalid response
  */
 const callGeminiAPI = async (message) => {
   try {
@@ -98,6 +106,8 @@ const callGeminiAPI = async (message) => {
 
 /**
  * Test Gemini API connection
+ * Sends a test message to verify API connectivity and configuration
+ * @returns {Promise<boolean>} - True if connection successful, false otherwise
  */
 const testConnection = async () => {
   try {

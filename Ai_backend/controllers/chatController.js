@@ -1,3 +1,9 @@
+/**
+ * Chat Controller
+ * Handles chat interactions between users and the AI assistant
+ * Manages conversation history and integrates with Gemini AI service
+ */
+
 const { callGeminiAPI } = require('../services/geminiService');
 const { logChatInteraction } = require('../utils/logger');
 
@@ -6,6 +12,12 @@ let chatHistory = [];
 
 /**
  * Send message to Gemini AI and return response
+ * @route POST /api/chat/message
+ * @param {Object} req.body - Request body containing message, userId, conversationId
+ * @param {string} req.body.message - User's message to send to AI
+ * @param {string} req.body.userId - Optional user identifier
+ * @param {string} req.body.conversationId - Optional conversation identifier
+ * @returns {Object} AI response with conversation metadata
  */
 const sendMessage = async (req, res) => {
   try {
@@ -61,7 +73,17 @@ const sendMessage = async (req, res) => {
 };
 
 /**
- * Get chat history for a user or conversation
+ * Get chat history for a ions for common questions
+ * - Animated interface with smooth transitions
+ * - Typing indicators and message threading
+ * - Responsive design for mobile and desktop
+ * 
+ * @componentuser or conversation
+ * @route GET /api/chat/history
+ * @param {string} req.query.userId - Optional user ID to filter history
+ * @param {string} req.query.conversationId - Optional conversation ID to filter history
+ * @param {number} req.query.limit - Maximum number of messages to return (default: 50)
+ * @returns {Object} Chat history with metadata
  */
 const getChatHistory = async (req, res) => {
   try {

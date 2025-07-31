@@ -1,3 +1,23 @@
+/**
+ * User Dashboard Page
+ * 
+ * Main dashboard interface for authenticated users to view their credit profile,
+ * application status, score history, and industry insights.
+ * 
+ * Features:
+ * - Credit score display and history chart
+ * - Application status tracking
+ * - Document management section
+ * - Industry-specific insights
+ * - Recent activity timeline
+ * - Quick action buttons
+ * - Integrated chatbot support
+ * - Responsive design for all devices
+ * 
+ * @component
+ * @returns {JSX.Element} Rendered user dashboard
+ */
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Clock, FileText, AlertCircle, CheckCircle } from 'lucide-react';
@@ -9,7 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useRef } from 'react';
 import Chatbot from '../../components/chatBot';
 
-// Mock data for user score history
+// Mock data for user credit score history over time
 const scoreHistory = [
   { month: 'Jul', score: 680 },
   { month: 'Aug', score: 695 },
@@ -19,6 +39,7 @@ const scoreHistory = [
   { month: 'Dec', score: 742 },
 ];
 
+// Industry-specific insights and trends
 const industryInsights = [
   {
     title: 'Fashion Industry Outlook',
@@ -39,6 +60,10 @@ const industryInsights = [
 
 export function UserDashboard() {
   const { user } = useAuth();
+  
+  /**
+   * Type definition for document items in the dashboard
+   */
   type DocumentItem = {
   id: string;
   name: string;

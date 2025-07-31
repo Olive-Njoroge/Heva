@@ -1,5 +1,16 @@
 /**
+ * Validation Middleware
+ * Provides request validation for chat API endpoints
+ * Validates message content, user IDs, and conversation IDs
+ */
+
+/**
  * Validate chat message request
+ * Ensures the message field meets requirements for length and format
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object|void} - Error response or calls next()
  */
 const validateMessage = (req, res, next) => {
   const { message } = req.body;
@@ -50,6 +61,11 @@ const validateMessage = (req, res, next) => {
 
 /**
  * Validate optional fields
+ * Validates userId and conversationId if provided in the request
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object|void} - Error response or calls next()
  */
 const validateOptionalFields = (req, res, next) => {
   const { userId, conversationId } = req.body;

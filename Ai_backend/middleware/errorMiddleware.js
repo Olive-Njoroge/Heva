@@ -1,5 +1,15 @@
 /**
+ * Error Handling Middleware
+ * Provides centralized error handling for the Express application
+ * Handles 404 errors and global error responses with appropriate logging
+ */
+
+/**
  * 404 Not Found handler
+ * Handles requests to non-existent routes
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object  
+ * @param {Function} next - Express next middleware function
  */
 const notFound = (req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
@@ -9,6 +19,12 @@ const notFound = (req, res, next) => {
 
 /**
  * Global error handler
+ * Catches and handles all errors thrown in the application
+ * Provides appropriate HTTP status codes and error messages
+ * @param {Error} err - Error object
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;

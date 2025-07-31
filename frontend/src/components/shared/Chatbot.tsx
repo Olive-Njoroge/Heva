@@ -1,3 +1,21 @@
+/**
+ * Chatbot Component
+ * 
+ * An intelligent chatbot interface for the Heva credit decisioning platform.
+ * Provides industry-specific advice for fashion, film, music professionals and general credit guidance.
+ * 
+ * Features:
+ * - Floating chat widget with toggle functionality
+ * - Industry-specific responses based on user queries
+ * - Quick reply suggestions for common questions
+ * - Animated interface with smooth transitions
+ * - Typing indicators and message threading
+ * - Responsive design for mobile and desktop
+ * 
+ * @component
+ * @returns {JSX.Element} Rendered chatbot interface
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send } from 'lucide-react';
@@ -24,14 +42,25 @@ export function Chatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Scrolls the chat messages to the bottom
+   * Ensures the latest message is always visible to the user
+   */
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Auto-scroll when new messages are added
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  /**
+   * Generates bot responses based on user input
+   * Provides industry-specific advice and general credit guidance
+   * @param {string} userMessage - The user's input message
+   * @returns {ChatMessage} Generated bot response with appropriate quick replies
+   */
   const getBotResponse = (userMessage: string): ChatMessage => {
     const lowerMessage = userMessage.toLowerCase();
     
@@ -112,6 +141,11 @@ export function Chatbot() {
     };
   };
 
+  /**
+   * Handles sending a message in the chat
+   * Adds user message to chat, generates bot response, and simulates typing
+   * @param {string} text - The message text to send
+   */
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 

@@ -1,9 +1,22 @@
+/**
+ * Logger Utility
+ * Provides logging functionality for chat interactions and errors
+ * Writes logs to daily files with proper directory structure
+ */
+
 const fs = require('fs').promises;
 const path = require('path');
 
 /**
  * Log chat interactions to file
- * @param {Object} interaction - Chat interaction object
+ * Creates daily log files for chat interactions with privacy considerations
+ * @param {Object} interaction - Chat interaction object containing user message, AI response, etc.
+ * @param {string} interaction.timestamp - ISO timestamp of the interaction
+ * @param {string} interaction.userId - User identifier
+ * @param {string} interaction.conversationId - Conversation identifier
+ * @param {string} interaction.userMessage - User's original message
+ * @param {string} interaction.aiResponse - AI's response
+ * @param {string} interaction.clientIP - Client's IP address
  */
 const logChatInteraction = async (interaction) => {
   try {
@@ -37,8 +50,9 @@ const logChatInteraction = async (interaction) => {
 
 /**
  * Log errors to file
- * @param {Error} error - Error object
- * @param {Object} context - Additional context
+ * Creates daily error log files with detailed error information and context
+ * @param {Error} error - Error object with message and stack trace
+ * @param {Object} context - Additional context information (request details, etc.)
  */
 const logError = async (error, context = {}) => {
   try {
