@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRef } from 'react';
+import Chatbot from '../../components/chatBot';
 
 // Mock data for user score history
 const scoreHistory = [
@@ -38,6 +39,19 @@ const industryInsights = [
 
 export function UserDashboard() {
   const { user } = useAuth();
+  type DocumentItem = {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  uploadDate: string;
+  size: string;
+  type: string;
+  required: boolean;
+  description: string;
+};
+
+const [documents, setDocuments] = React.useState<DocumentItem[]>([]);
 
   const bankInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
@@ -299,11 +313,23 @@ export function UserDashboard() {
                 style={{ display: 'none' }}
                 ref={bankInputRef}
                 onChange={e => {
-                  // Handle file upload here
                   const file = e.target.files?.[0];
                   if (file) {
-                    // Upload logic or show a message
-                    alert(`Bank statement "${file.name}" selected!`);
+                    // Create a new document object
+                    const newDoc = {
+                      id: Date.now().toString(),
+                      name: file.name,
+                      category: 'financial',
+                      status: 'pending',
+                      uploadDate: new Date().toISOString().split('T')[0],
+                      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+                      type: file.type,
+                      required: true,
+                      description: 'Uploaded bank statement'
+                    };
+                    // Add to documents state
+                    setDocuments(prev => [...prev, newDoc]);
+                    alert(`Bank statement "${file.name}" uploaded!`);
                   }
                 }}
               />
@@ -320,11 +346,21 @@ export function UserDashboard() {
                 style={{ display: 'none' }}
                 ref={portfolioInputRef}
                 onChange={e => {
-                  // Handle file upload here
                   const file = e.target.files?.[0];
                   if (file) {
-                    // Upload logic or show a message
-                    alert(`Portfolio file "${file.name}" selected!`);
+                    const newDoc = {
+                      id: Date.now().toString(),
+                      name: file.name,
+                      category: 'portfolio',
+                      status: 'pending',
+                      uploadDate: new Date().toISOString().split('T')[0],
+                      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+                      type: file.type,
+                      required: false,
+                      description: 'Uploaded portfolio file'
+                    };
+                    setDocuments(prev => [...prev, newDoc]);
+                    alert(`Portfolio file "${file.name}" uploaded!`);
                   }
                 }}
               />
@@ -338,7 +374,34 @@ export function UserDashboard() {
             </div>
           </div>
         </Card>
+        
+        <Card>
+  <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Uploaded Documents</h3>
+  {documents.length === 0 ? (
+    <p className="text-gray-500">No documents uploaded yet.</p>
+  ) : (
+    <ul className="divide-y divide-gray-200">
+      {documents.map(doc => (
+        <li key={doc.id} className="py-2 flex items-center justify-between">
+          <div>
+            <span className="font-medium">{doc.name}</span>
+            <span className="ml-2 text-xs text-gray-500">{doc.category}</span>
+            <span className="ml-2 text-xs text-gray-400">{doc.size}</span>
+          </div>
+          <span className={`px-2 py-1 rounded text-xs ${
+            doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+            doc.status === 'verified' ? 'bg-green-100 text-green-800' :
+            'bg-red-100 text-red-800'
+          }`}>
+            {doc.status}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )}
+</Card>
       </div>
+      <Chatbot />
     </Layout>
   );
 }
