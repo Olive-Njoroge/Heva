@@ -1,0 +1,68 @@
+# === Java / Spring Boot (Maven or Gradle) ===
+
+# Build directories
+/target
+/build
+.gradle/
+out/
+
+.vite/
+
+# Compiled class files
+*.class
+
+# Logs
+*.log
+logs/
+
+# IntelliJ IDEA files
+.idea/
+*.iml
+
+# VS Code settings
+.vscode/
+
+# Eclipse files
+.classpath
+.project
+.settings/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Optional: Exclude config files if they contain secrets
+# If you have secrets in them, exclude. If not, include safely.
+# Uncomment below only if you store passwords locally!
+# /src/main/resources/application.properties
+# /src/main/resources/application.yml
+=======
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+>>>>>>> 00c75063b9aee5308efcad7a15fdd6896432494a
