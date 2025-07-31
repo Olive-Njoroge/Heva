@@ -418,32 +418,33 @@ export function Documents() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
+
               <Upload size={32} className="text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Drag and drop your files here
-              </h3>
-              <p className="text-gray-600 mb-4">
-                or click to browse your computer
-              </p>
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.png,.jpg,.jpeg,.zip,.doc,.docx"
-                onChange={(e) => handleFileUpload(e.target.files)}
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
-                <Button variant="outline" size="lg" className="cursor-pointer">
-                  Choose Files
-                </Button>
-              </label>
-              <p className="text-xs text-gray-500 mt-4">
-                Supported formats: PDF, PNG, JPG, ZIP, DOC, DOCX (Max 10MB each)
-              </p>
-            </div>
-          </div>
-        </Modal>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">
+        Drag and drop your files here
+      </h3>
+      <p className="text-gray-600 mb-4">
+        or click to browse your computer
+      </p>
+      <input
+        type="file"
+        multiple
+        accept=".pdf,.png,.jpg,.jpeg,.zip,.doc,.docx"
+        onChange={(e) => handleFileUpload(e.target.files)}
+        className="hidden"
+        id="file-upload"
+      />
+      <label htmlFor="file-upload">
+        <Button variant="outline" size="lg" className="cursor-pointer">
+          Choose Files
+        </Button>
+      </label>
+      <p className="text-xs text-gray-500 mt-4">
+        Supported formats: PDF, PNG, JPG, ZIP, DOC, DOCX (Max 10MB each)
+      </p>
+    </div>
+  </div>
+</Modal>
 
         {/* Document Details Modal */}
         <Modal
