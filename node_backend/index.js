@@ -11,12 +11,14 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',          // Local development
+    'https://heva-beige.vercel.app'   // Vercel production (removed trailing slash)
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 app.use(express.json());
 
 // Request logging
