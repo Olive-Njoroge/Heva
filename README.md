@@ -63,8 +63,8 @@ npm test
 
 ## 📦 Deployment
 
-* **Frontend**: Deployed on \[e.g., Netlify/Vercel]
-* **Backend**: Deployed on \[e.g., Render, Railway]
+* **Frontend**: Deployed on Vercel
+* **Backend**: Deployed on Render
 
 ---
 
@@ -77,21 +77,10 @@ Credit-Decisioning/
 ├── README.md
 ```
 
----
-
-## 🤝 Contributors
-
-* Olive Njoroge – Full Stack Developer
-* \[Your team members if any]
-
----
 
 ## 🧠 Inspiration
 
-This project was built for a \[Hackathon/Competition name] focused on financial inclusion through AI and data-driven lending.
+This project was built for CodeHer Hackathon focused on financial inclusion through AI and data-driven lending.
 
 ---
 
-## 📜 License
-
-[MIT](LICENSE)
