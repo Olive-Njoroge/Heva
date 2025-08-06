@@ -1,4 +1,4 @@
-// Frontend API service for chatbot communication
+// Frontend API service for AI chatbot communication
 
 export interface ChatMessage {
   message: string;
@@ -32,15 +32,18 @@ class ChatService {
   private baseURL: string;
   private defaultTimeout: number = 30000; // 30 seconds
 
-  constructor(baseURL: string = import.meta.env.VITE_API_URL || 'http://localhost:3001') {
+  constructor(baseURL: string = import.meta.env.VITE_AI_API_URL || 'http://localhost:3002') {
     this.baseURL = baseURL;
+    console.log('🤖 ChatService initialized with AI backend URL:', this.baseURL);
   }
 
   /**
-   * Send message to chatbot
+   * Send message to AI chatbot
    */
   async sendMessage(data: ChatMessage): Promise<ChatResponse> {
     try {
+      console.log('🤖 Sending message to AI backend:', this.baseURL);
+      
       const response = await fetch(`${this.baseURL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -53,26 +56,31 @@ class ChatService {
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('❌ AI backend error:', result);
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 
+      console.log('✅ AI response received successfully');
       return result;
     } catch (error) {
-      console.error('Chat service error:', error);
+      console.error('❌ Chat service error:', error);
       
       if (error instanceof Error) {
         if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-          throw new Error('Request timed out. Please try again.');
+          throw new Error('AI request timed out. Please try again.');
+        }
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Cannot connect to AI service. Please check if the AI backend is running.');
         }
         throw error;
       }
       
-      throw new Error('An unexpected error occurred while sending your message.');
+      throw new Error('An unexpected error occurred while communicating with the AI service.');
     }
   }
 
   /**
-   * Get chat history
+   * Get chat history from AI backend
    */
   async getChatHistory(params?: {
     userId?: string;
@@ -101,13 +109,13 @@ class ChatService {
 
       return result;
     } catch (error) {
-      console.error('Get chat history error:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch chat history');
+      console.error('❌ Get chat history error:', error);
+      throw error instanceof Error ? error : new Error('Failed to fetch chat history from AI service');
     }
   }
 
   /**
-   * Check API status
+   * Check AI service status
    */
   async checkStatus(): Promise<{ status: string; service: string; timestamp: string }> {
     try {
@@ -120,13 +128,13 @@ class ChatService {
 
       return result;
     } catch (error) {
-      console.error('Status check error:', error);
-      throw error instanceof Error ? error : new Error('Failed to check API status');
+      console.error('❌ AI service status check error:', error);
+      throw error instanceof Error ? error : new Error('Failed to check AI service status');
     }
   }
 
   /**
-   * Check health endpoint
+   * Check AI service health
    */
   async checkHealth(): Promise<{
     status: string;
@@ -144,14 +152,29 @@ class ChatService {
 
       return result;
     } catch (error) {
-      console.error('Health check error:', error);
-      throw error instanceof Error ? error : new Error('Failed to check API health');
+      console.error('❌ AI service health check error:', error);
+      throw error instanceof Error ? error : new Error('Failed to check AI service health');
+    }
+  }
+
+  /**
+   * Test AI backend connection
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      console.log('🧪 Testing AI backend connection...');
+      await this.checkHealth();
+      console.log('✅ AI backend connection successful');
+      return true;
+    } catch (error) {
+      console.error('❌ AI backend connection failed:', error);
+      return false;
     }
   }
 }
 
-// Create singleton instance
-export const chatService = new ChatService();
+// Create singleton instance for AI chat service
+export const aiChatService = new ChatService();
 
-// Export default instance
-export default chatService;
+// Export default instance (keeping backward compatibility)
+export default aiChatService;
