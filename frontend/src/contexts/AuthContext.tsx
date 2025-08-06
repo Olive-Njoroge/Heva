@@ -98,7 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Replace your login and register functions with these:
-
 const login = async (email: string, password: string): Promise<void> => {
   setIsLoading(true);
   setError(null);
@@ -111,11 +110,17 @@ const login = async (email: string, password: string): Promise<void> => {
     
     if (response.success && response.token && response.user) {
       console.log('✅ AuthContext: Login successful');
+      console.log('👤 User role from backend:', response.user.role);
       
       setToken(response.token);
       setUser(response.user);
+      setIsAuthenticated(true);
+      setIsAdmin(response.user.role === 'admin'); // Use backend role
       
       localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      console.log('💾 Auth state updated - isAdmin:', response.user.role === 'admin');
       
     } else {
       console.error('❌ AuthContext: Login failed - invalid response');
@@ -123,13 +128,12 @@ const login = async (email: string, password: string): Promise<void> => {
     }
   } catch (error: any) {
     console.error('❌ AuthContext: Login error:', error);
-    const errorMessage = error.message || 'Login failed';
-    setError(errorMessage);
-    throw new Error(errorMessage);
+    throw error;
   } finally {
     setIsLoading(false);
   }
 };
+
 
 const register = async (userData: RegisterData): Promise<void> => {
   setIsLoading(true);

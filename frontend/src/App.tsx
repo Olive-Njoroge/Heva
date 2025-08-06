@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
-// Remove this line: import { Register } from './pages/Register';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -42,7 +41,15 @@ function ProtectedRoute({
   children: React.ReactNode; 
   requireAdmin?: boolean 
 }) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
+
+  console.log('🛡️ ProtectedRoute check:', { 
+    isAuthenticated, 
+    isAdmin, 
+    isLoading, 
+    userRole: user?.role,
+    requireAdmin 
+  });
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -51,30 +58,68 @@ function ProtectedRoute({
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Check admin requirements
   if (requireAdmin && !isAdmin) {
+    console.log('❌ Admin access required, redirecting to user dashboard');
     return <Navigate to="/user/dashboard" replace />;
   }
 
+  // Prevent regular users from accessing admin routes
+  if (!requireAdmin && isAdmin && window.location.pathname.startsWith('/user/')) {
+    console.log('ℹ️ Admin accessing user route, redirecting to admin dashboard');
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  console.log('✅ Access granted');
   return <>{children}</>;
 }
 
 // Public Route Component (for login/register)
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
+
+  console.log('🌐 PublicRoute check:', { 
+    isAuthenticated, 
+    isAdmin, 
+    isLoading, 
+    userRole: user?.role 
+  });
 
   if (isLoading) {
     return <LoadingScreen />;
   }
 
   if (isAuthenticated) {
-    return <Navigate to={isAdmin ? "/admin/dashboard" : "/user/dashboard"} replace />;
+    const dashboardUrl = isAdmin ? "/admin/dashboard" : "/user/dashboard";
+    console.log('✅ User authenticated, redirecting to:', dashboardUrl);
+    return <Navigate to={dashboardUrl} replace />;
   }
 
   return <>{children}</>;
+}
+
+// Dashboard Redirect Component
+function DashboardRedirect() {
+  const { isAdmin, user } = useAuth();
+  
+  React.useEffect(() => {
+    const targetUrl = isAdmin ? '/admin/dashboard' : '/user/dashboard';
+    console.log('🚀 Dashboard redirect to:', targetUrl, 'for user:', user?.email);
+    window.location.href = targetUrl;
+  }, [isAdmin, user]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Redirecting to your dashboard...</p>
+      </div>
+    </div>
+  );
 }
 
 function AppRoutes() {
@@ -86,25 +131,26 @@ function AppRoutes() {
         element={<Navigate to="/login" replace />} 
       />
       
+      {/* FIXED: Wrap login with PublicRoute */}
       <Route 
         path="/login" 
         element={
-            <Login />
-        } 
-      />
-      
-      {/* Remove the register route since it's handled in Login component */}
-      {/* 
-      <Route 
-        path="/register" 
-        element={
           <PublicRoute>
-            <Register />
+            <Login />
           </PublicRoute>
         } 
       />
-      */}
 
+      {/* Dashboard redirect route */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <DashboardRedirect />
+          </ProtectedRoute>
+        } 
+      />
+      
       {/* Admin Routes */}
       <Route 
         path="/admin/dashboard" 
