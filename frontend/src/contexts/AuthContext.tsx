@@ -1,174 +1,243 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiService } from '../services/api';
+
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'admin' | 'user';
+  creditScore?: number;
+  creditTier?: string;
+  industry?: string;
+  businessName?: string;
+  businessType?: string;
+  phone?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+  createdAt?: string;
+  lastLogin?: string;
+}
+
+export interface RegisterData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role?: 'admin' | 'user';
+  industry?: string;
+  businessName?: string;
+  businessType?: string;
+  phone?: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: 'admin' | 'user') => Promise<boolean>;
-  register: (userData: RegisterData) => Promise<boolean>;
-  updateUser: (updatedData: Partial<User>) => Promise<boolean>;
+  token: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
+  isLoading: boolean;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  getAllUsers: () => Promise<User[]>;
   isAuthenticated: boolean;
   isAdmin: boolean;
-}
-
-interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: 'admin' | 'user';
+  refreshUser: () => Promise<void>;
+  error: string | null;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demonstration
-const mockUsers: User[] = [
-  {
-    id: 'admin-1',
-    name: 'Admin User',
-    email: 'admin@heva.com',
-    role: 'admin',
-    joinDate: '2023-01-15',
-    lastActivity: '2024-01-15T10:30:00Z'
-  },
-  {
-    id: 'user-1',
-    name: 'Emma Rodriguez',
-    email: 'emma@example.com',
-    role: 'user',
-    industry: 'Fashion',
-    creditScore: 742,
-    businessName: 'Rodriguez Designs',
-    location: 'New York, NY',
-    yearsInBusiness: 3,
-    applicationStatus: 'approved',
-    joinDate: '2023-06-10',
-    lastActivity: '2024-01-14T15:45:00Z'
-  }
-];
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const clearError = () => setError(null);
+
+  // Check for existing token on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('hevaUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const initializeAuth = async () => {
+      console.log('🔄 Initializing auth...');
+      const savedToken = localStorage.getItem('token');
+      
+      if (savedToken) {
+        console.log('🔑 Found saved token, fetching user...');
+        setToken(savedToken);
+        await fetchUser();
+      } else {
+        console.log('🚫 No saved token found');
+        setIsLoading(false);
+      }
+    };
 
-    // Load registered users from localStorage
-    const savedRegisteredUsers = localStorage.getItem('hevaRegisteredUsers');
-    if (savedRegisteredUsers) {
-      setRegisteredUsers(JSON.parse(savedRegisteredUsers));
-    }
+    initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string, role: 'admin' | 'user'): Promise<boolean> => {
-    // Check both mock users and registered users
-    const allUsers = [...mockUsers, ...registeredUsers];
-    const foundUser = allUsers.find(u => u.email === email && u.role === role);
-    
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('hevaUser', JSON.stringify(foundUser));
-      return true;
-    }
-    
-    return false;
-  };
-
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  const fetchUser = async () => {
     try {
-      // Check if user already exists
-      const allUsers = [...mockUsers, ...registeredUsers];
-      const existingUser = allUsers.find(u => u.email === userData.email);
+      console.log('👤 Fetching current user...');
+      const response = await apiService.getCurrentUser();
       
-      if (existingUser) {
-        return false; // User already exists
+      if (response.success && response.user) {
+        setUser(response.user);
+        console.log('✅ User loaded:', response.user.email, response.user.role);
+      } else {
+        throw new Error('Invalid response format');
       }
-
-      // Generate a new user ID
-      const newUserId = `${userData.role}-${Date.now()}`;
-      
-      // Create new user object
-      const newUser: User = {
-        id: newUserId,
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        role: userData.role,
-        joinDate: new Date().toISOString().split('T')[0],
-        lastActivity: new Date().toISOString(),
-        // Add default values for user role
-        ...(userData.role === 'user' && {
-          industry: 'Other', // Default industry
-          creditScore: 0, // Will be calculated later
-          businessName: `${userData.firstName}'s Business`,
-          location: 'Not specified',
-          yearsInBusiness: 0,
-          applicationStatus: 'pending' as const
-        })
-      };
-
-      // Add to registered users
-      const updatedRegisteredUsers = [...registeredUsers, newUser];
-      setRegisteredUsers(updatedRegisteredUsers);
-      
-      // Save to localStorage
-      localStorage.setItem('hevaRegisteredUsers', JSON.stringify(updatedRegisteredUsers));
-      
-      return true;
     } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+      console.error('❌ Error fetching user:', error);
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateUser = async (updatedData: Partial<User>): Promise<boolean> => {
-    try {
-      if (!user) return false;
+  // Replace your login and register functions with these:
 
-      // Create updated user object
-      const updatedUser = { ...user, ...updatedData };
+const login = async (email: string, password: string): Promise<void> => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    console.log('🔄 AuthContext: Starting login...', { email });
+    
+    const response = await apiService.login(email, password);
+    console.log('📡 AuthContext: API response:', response);
+    
+    if (response.success && response.token && response.user) {
+      console.log('✅ AuthContext: Login successful');
       
-      // Update current user state
-      setUser(updatedUser);
-      localStorage.setItem('hevaUser', JSON.stringify(updatedUser));
+      setToken(response.token);
+      setUser(response.user);
+      
+      localStorage.setItem('token', response.token);
+      
+    } else {
+      console.error('❌ AuthContext: Login failed - invalid response');
+      throw new Error(response.error || 'Invalid credentials');
+    }
+  } catch (error: any) {
+    console.error('❌ AuthContext: Login error:', error);
+    const errorMessage = error.message || 'Login failed';
+    setError(errorMessage);
+    throw new Error(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-      // Update in registered users array if this is a registered user
-      const isRegisteredUser = registeredUsers.some(u => u.id === user.id);
-      if (isRegisteredUser) {
-        const updatedRegisteredUsers = registeredUsers.map(u => 
-          u.id === user.id ? updatedUser : u
-        );
-        setRegisteredUsers(updatedRegisteredUsers);
-        localStorage.setItem('hevaRegisteredUsers', JSON.stringify(updatedRegisteredUsers));
+const register = async (userData: RegisterData): Promise<void> => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    console.log('🔄 AuthContext: Starting registration...', userData);
+    
+    const response = await apiService.register(userData);
+    console.log('📡 AuthContext: Registration response:', response);
+    
+    if (response.success && response.token && response.user) {
+      console.log('✅ AuthContext: Registration successful');
+      
+      setToken(response.token);
+      setUser(response.user);
+      
+      localStorage.setItem('token', response.token);
+      
+    } else {
+      console.error('❌ AuthContext: Registration failed - invalid response');
+      throw new Error(response.error || 'Registration failed');
+    }
+  } catch (error: any) {
+    console.error('❌ AuthContext: Registration error:', error);
+    const errorMessage = error.message || 'Registration failed';
+    setError(errorMessage);
+    throw new Error(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const updateUser = async (userData: Partial<User>) => {
+    try {
+      setError(null);
+      console.log('📝 Updating user profile...');
+      
+      const response = await apiService.updateProfile(userData);
+      
+      if (response.success && response.user) {
+        setUser(response.user);
+        console.log('✅ Profile updated successfully');
+      } else {
+        throw new Error(response.error || 'Update failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Update failed';
+      console.error('❌ Update error:', errorMessage);
+      setError(errorMessage);
+      throw error;
+    }
+  };
+
+  const getAllUsers = async (): Promise<User[]> => {
+    try {
+      if (user?.role !== 'admin') {
+        throw new Error('Admin access required');
       }
 
-      return true;
+      setError(null);
+      console.log('👥 Fetching all users (Admin)...');
+      
+      const response = await apiService.getAllUsers();
+      
+      if (response.success && response.users) {
+        console.log('✅ Users fetched:', response.users.length);
+        return response.users;
+      } else {
+        throw new Error(response.error || 'Failed to fetch users');
+      }
     } catch (error) {
-      console.error('Update user error:', error);
-      return false;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users';
+      console.error('❌ Get users error:', errorMessage);
+      setError(errorMessage);
+      throw error;
+    }
+  };
+
+  const refreshUser = async () => {
+    if (token) {
+      console.log('🔄 Refreshing user data...');
+      await fetchUser();
     }
   };
 
   const logout = () => {
+    console.log('🚪 Logging out user');
+    localStorage.removeItem('token');
+    setToken(null);
     setUser(null);
-    localStorage.removeItem('hevaUser');
+    setError(null);
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
+    token,
     login,
     register,
-    updateUser,
     logout,
+    isLoading,
+    updateUser,
+    getAllUsers,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin'
+    isAdmin: user?.role === 'admin',
+    refreshUser,
+    error,
+    clearError,
   };
 
   return (
