@@ -36,66 +36,63 @@ export function Login() {
     resetForm();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLocalError('');
-    setSuccess('');
-    clearError();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLocalError('');
+  setSuccess('');
+  clearError();
 
-    try {
-      if (isLogin) {
-        // Login logic
-        console.log('🔄 Starting login process...');
-        await login(formData.email, formData.password);
-        console.log('✅ Login successful!');
-        
-        setSuccess('Login successful! Redirecting...');
-        
-        // Force navigation based on selected role
-        setTimeout(() => {
-          const targetUrl = formData.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
-          console.log('🚀 Navigating to:', targetUrl);
-          window.location.href = targetUrl;
-        }, 500);
-        
-      } else {
-        // Registration logic
-        if (formData.password !== confirmPassword) {
-          setLocalError('Passwords do not match.');
-          return;
-        }
-        if (formData.password.length < 6) {
-          setLocalError('Password must be at least 6 characters long.');
-          return;
-        }
-        if (!firstName || !lastName) {
-          setLocalError('First name and last name are required.');
-          return;
-        }
-
-        console.log('🔄 Starting registration process...');
-        await register({
-          email: formData.email,
-          password: formData.password,
-          firstName,
-          lastName,
-          role: formData.role
-        });
-        console.log('✅ Registration successful!');
-        
-        setSuccess('Account created successfully! Redirecting...');
-        
-        setTimeout(() => {
-          const targetUrl = formData.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
-          console.log('🚀 Navigating to:', targetUrl);
-          window.location.href = targetUrl;
-        }, 500);
+  try {
+    if (isLogin) {
+      // Login logic
+      console.log('🔄 Starting login process...');
+      const result = await login(formData.email, formData.password);
+      console.log('✅ Login successful!', result);
+      
+      setSuccess('Login successful! Redirecting...');
+      
+      // IMPORTANT: Use React Router navigate instead of window.location
+      // The AuthContext should trigger automatic redirect via ProtectedRoute
+      setTimeout(() => {
+        navigate('/dashboard'); // Let the app routing handle the redirect based on user role
+      }, 500);
+      
+    } else {
+      // Registration logic
+      if (formData.password !== confirmPassword) {
+        setLocalError('Passwords do not match.');
+        return;
       }
-    } catch (err: any) {
-      console.error('❌ Auth error:', err);
-      setLocalError(err.message || (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));
+      if (formData.password.length < 6) {
+        setLocalError('Password must be at least 6 characters long.');
+        return;
+      }
+      if (!firstName || !lastName) {
+        setLocalError('First name and last name are required.');
+        return;
+      }
+
+      console.log('🔄 Starting registration process...');
+      const result = await register({
+        email: formData.email,
+        password: formData.password,
+        firstName,
+        lastName,
+        role: formData.role // This is fine for registration
+      });
+      console.log('✅ Registration successful!', result);
+      
+      setSuccess('Account created successfully! Redirecting...');
+      
+      setTimeout(() => {
+        navigate('/dashboard'); // Let the app routing handle the redirect
+      }, 500);
     }
-  };
+  } catch (err: any) {
+    console.error('❌ Auth error:', err);
+    setLocalError(err.message || (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));
+  }
+};
 
   const fillDemoCredentials = (demoRole: 'admin' | 'user') => {
     if (demoRole === 'admin') {
