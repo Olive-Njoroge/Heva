@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquareX, Send, Bot, MessageCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { chatService, ChatMessage, ChatResponse } from '../services/chatService';
+import { aiChatService, ChatMessage, ChatResponse } from '../services/chatService';
 
 interface ChatMessageType {
   id: string;
@@ -61,7 +61,7 @@ export default function Chatbot({
 
   const checkApiStatus = async () => {
     try {
-      await chatService.checkStatus();
+      await aiChatService.checkStatus();
       setIsOnline(true);
       setConnectionError(null);
     } catch (error) {
@@ -82,7 +82,7 @@ export default function Chatbot({
         conversationId
       };
 
-      const response: ChatResponse = await chatService.sendMessage(chatData);
+      const response: ChatResponse = await aiChatService.sendMessage(chatData);
 
       if (response.success && response.response) {
         // Update conversation ID if provided
