@@ -13,7 +13,7 @@ connectDB();
 app.use(cors({
   origin: [
     'http://localhost:5173',          // Local development
-    'https://heva-beige.vercel.app'   // Vercel production (removed trailing slash)
+    'https://heva-5ntn.vercel.app'   // Vercel production (removed trailing slash)
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
