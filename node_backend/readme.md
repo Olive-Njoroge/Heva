@@ -1,0 +1,1 @@
+I’ve implemented the backend using Node.js to ensure functionality for the upcoming presentation. I’ve kept the Java backend untouched, so if there’s progress on that later, it can still be integrated or reviewed. The new backend supports all the required APIs and connects with the frontend.
