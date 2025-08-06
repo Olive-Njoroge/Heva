@@ -36,63 +36,55 @@ export function Login() {
     resetForm();
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLocalError('');
-  setSuccess('');
-  clearError();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError('');
+    setSuccess('');
+    clearError();
 
-  try {
-    if (isLogin) {
-      // Login logic
-      console.log('🔄 Starting login process...');
-      const result = await login(formData.email, formData.password);
-      console.log('✅ Login successful!', result);
-      
-      setSuccess('Login successful! Redirecting...');
-      
-      // IMPORTANT: Use React Router navigate instead of window.location
-      // The AuthContext should trigger automatic redirect via ProtectedRoute
-      setTimeout(() => {
-        navigate('/dashboard'); // Let the app routing handle the redirect based on user role
-      }, 500);
-      
-    } else {
-      // Registration logic
-      if (formData.password !== confirmPassword) {
-        setLocalError('Passwords do not match.');
-        return;
-      }
-      if (formData.password.length < 6) {
-        setLocalError('Password must be at least 6 characters long.');
-        return;
-      }
-      if (!firstName || !lastName) {
-        setLocalError('First name and last name are required.');
-        return;
-      }
+    try {
+      if (isLogin) {
+        // Login logic
+        console.log('🔄 Starting login process...');
+        await login(formData.email, formData.password);
+        console.log('✅ Login successful!');
+        
+        setSuccess('Login successful! Redirecting...');
+        // PublicRoute will automatically redirect based on user role from backend
+        
+      } else {
+        // Registration validation
+        if (formData.password !== confirmPassword) {
+          setLocalError('Passwords do not match.');
+          return;
+        }
+        if (formData.password.length < 6) {
+          setLocalError('Password must be at least 6 characters long.');
+          return;
+        }
+        if (!firstName || !lastName) {
+          setLocalError('First name and last name are required.');
+          return;
+        }
 
-      console.log('🔄 Starting registration process...');
-      const result = await register({
-        email: formData.email,
-        password: formData.password,
-        firstName,
-        lastName,
-        role: formData.role // This is fine for registration
-      });
-      console.log('✅ Registration successful!', result);
-      
-      setSuccess('Account created successfully! Redirecting...');
-      
-      setTimeout(() => {
-        navigate('/dashboard'); // Let the app routing handle the redirect
-      }, 500);
+        console.log('🔄 Starting registration process...');
+        await register({
+          email: formData.email,
+          password: formData.password,
+          firstName,
+          lastName,
+          role: formData.role
+        });
+        console.log('✅ Registration successful!');
+        
+        setSuccess('Account created successfully! Redirecting...');
+        // PublicRoute will automatically redirect based on user role
+      }
+    } catch (err: any) {
+      console.error('❌ Auth error:', err);
+      setLocalError(err.message || (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));
     }
-  } catch (err: any) {
-    console.error('❌ Auth error:', err);
-    setLocalError(err.message || (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));
-  }
-};
+  };
 
   const fillDemoCredentials = (demoRole: 'admin' | 'user') => {
     if (demoRole === 'admin') {
@@ -108,6 +100,24 @@ const handleSubmit = async (e: React.FormEvent) => {
         role: 'user'
       });
     }
+  };
+
+  // Debug component to see authentication state
+  const AuthDebug = () => {
+    const { user, isAdmin, isAuthenticated } = useAuth();
+    
+    if (!isAuthenticated) return null;
+    
+    return (
+      <div className="fixed top-4 right-4 bg-black/80 text-white p-3 rounded text-xs z-50 max-w-xs">
+        <div className="space-y-1">
+          <p>✅ Authenticated: {String(isAuthenticated)}</p>
+          <p>👤 User: {user?.email}</p>
+          <p>🔑 Role: {user?.role}</p>
+          <p>👑 Is Admin: {String(isAdmin)}</p>
+        </div>
+      </div>
+    );
   };
 
   const displayError = localError || error;
@@ -152,46 +162,56 @@ const handleSubmit = async (e: React.FormEvent) => {
 
               {/* Error Message */}
               {displayError && (
-                <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm"
+                >
                   {displayError}
-                </div>
+                </motion.div>
               )}
 
               {/* Success Message */}
               {success && (
-                <div className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-3 rounded-lg text-sm">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-3 rounded-lg text-sm"
+                >
                   {success}
-                </div>
+                </motion.div>
               )}
 
-              {/* Role Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Account Type
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="user"
-                      checked={formData.role === 'user'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'user' }))}
-                      className="mr-2 text-blue-600"
-                    />
-                    <span className="text-sm text-gray-200">Creative Professional</span>
+              {/* Role Selection - Only show for registration */}
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Account Type
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="admin"
-                      checked={formData.role === 'admin'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'admin' }))}
-                      className="mr-2 text-blue-600"
-                    />
-                    <span className="text-sm text-gray-200">Administrator</span>
-                  </label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="user"
+                        checked={formData.role === 'user'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'user' }))}
+                        className="mr-2 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-200">Creative Professional</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="admin"
+                        checked={formData.role === 'admin'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'admin' }))}
+                        className="mr-2 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-200">Administrator</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Registration fields */}
               {!isLogin && (
@@ -206,7 +226,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       required={!isLogin}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="First name"
                     />
                   </div>
@@ -220,7 +240,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       required={!isLogin}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="Last name"
                     />
                   </div>
@@ -238,7 +258,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   required
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   placeholder="Enter your email"
                 />
               </div>
@@ -254,7 +274,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   required
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   placeholder="Enter your password"
                 />
               </div>
@@ -271,7 +291,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required={!isLogin}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="Confirm your password"
                   />
                 </div>
@@ -281,12 +301,15 @@ const handleSubmit = async (e: React.FormEvent) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+                {isLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                <span>{isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}</span>
               </button>
 
-              {/* Demo Buttons */}
+              {/* Demo Buttons - Only show for login */}
               {isLogin && (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-300 text-center">Try demo accounts:</p>
@@ -294,16 +317,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <button
                       type="button"
                       onClick={() => fillDemoCredentials('admin')}
-                      className="text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10 py-2 px-3 rounded-lg transition-colors"
+                      className="text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10 py-2 px-3 rounded-lg transition-colors duration-200"
                     >
-                      Demo Admin
+                      🔑 Demo Admin
                     </button>
                     <button
                       type="button"
                       onClick={() => fillDemoCredentials('user')}
-                      className="text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10 py-2 px-3 rounded-lg transition-colors"
+                      className="text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10 py-2 px-3 rounded-lg transition-colors duration-200"
                     >
-                      Demo User
+                      👤 Demo User
                     </button>
                   </div>
                 </div>
@@ -316,7 +339,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <button
                     type="button"
                     onClick={toggleMode}
-                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200"
                   >
                     {isLogin ? 'Sign up' : 'Sign in'}
                   </button>
@@ -326,7 +349,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               {/* Security Notice */}
               <div className="text-center">
                 <p className="text-xs text-gray-400">
-                  Your session will expire when you close the browser or log out
+                  🔒 Your session will expire when you close the browser or log out
                 </p>
               </div>
             </form>
@@ -341,10 +364,13 @@ const handleSubmit = async (e: React.FormEvent) => {
           className="mt-8 text-center"
         >
           <p className="text-sm text-gray-400">
-            Secure login • Encrypted connections • Protected data
+            🔐 Secure login • 🔗 Encrypted connections • 🛡️ Protected data
           </p>
         </motion.div>
       </motion.div>
+
+      {/* Debug Component - Shows authentication state */}
+      <AuthDebug />
     </div>
   );
 }
