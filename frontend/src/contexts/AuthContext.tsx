@@ -5,6 +5,7 @@ export interface User {
   id: string;
   firstName: string;
   lastName: string;
+  name?: string; // Add the name field
   email: string;
   role: 'admin' | 'user';
   creditScore?: number;
@@ -57,20 +58,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = () => setError(null);
 
+  // Helper function to ensure user has a name field
+  const ensureUserHasName = (userData: User): User => {
+    if (!userData.name && userData.firstName && userData.lastName) {
+      return {
+        ...userData,
+        name: `${userData.firstName} ${userData.lastName}`.trim()
+      };
+    }
+    return userData;
+  };
+
   // Check for existing token on mount
   useEffect(() => {
     const initializeAuth = async () => {
       console.log('🔄 Initializing auth...');
       const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
       
-      if (savedToken) {
+      if (savedToken && savedUser) {
+        console.log('🔑 Found saved token and user, restoring session...');
+        setToken(savedToken);
+        
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          const userWithName = ensureUserHasName(parsedUser);
+          setUser(userWithName);
+          console.log('✅ Session restored for:', userWithName.name || userWithName.email);
+          
+          // Update localStorage if name was added
+          if (!parsedUser.name && userWithName.name) {
+            localStorage.setItem('user', JSON.stringify(userWithName));
+          }
+        } catch (error) {
+          console.error('❌ Error parsing saved user:', error);
+          localStorage.removeItem('user');
+          await fetchUser();
+        }
+      } else if (savedToken) {
         console.log('🔑 Found saved token, fetching user...');
         setToken(savedToken);
         await fetchUser();
       } else {
         console.log('🚫 No saved token found');
-        setIsLoading(false);
       }
+      
+      setIsLoading(false);
     };
 
     initializeAuth();
@@ -82,14 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiService.getCurrentUser();
       
       if (response.success && response.user) {
-        setUser(response.user);
-        console.log('✅ User loaded:', response.user.email, response.user.role);
+        const userWithName = ensureUserHasName(response.user);
+        setUser(userWithName);
+        localStorage.setItem('user', JSON.stringify(userWithName));
+        console.log('✅ User loaded:', userWithName.name || userWithName.email, userWithName.role);
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('❌ Error fetching user:', error);
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
     } finally {
@@ -97,75 +133,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Replace your login and register functions with these:
-const login = async (email: string, password: string): Promise<void> => {
-  setIsLoading(true);
-  setError(null);
-  
-  try {
-    console.log('🔄 AuthContext: Starting login...', { email });
+  const login = async (email: string, password: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
     
-    const response = await apiService.login(email, password);
-    console.log('📡 AuthContext: API response:', response);
-    
-    if (response.success && response.token && response.user) {
-      console.log('✅ AuthContext: Login successful');
-      console.log('👤 User role from backend:', response.user.role);
+    try {
+      console.log('🔄 AuthContext: Starting login...', { email });
       
-      setToken(response.token);
-      setUser(response.user);
-      setIsAuthenticated(true);
-      setIsAdmin(response.user.role === 'admin'); // Use backend role
+      const response = await apiService.login(email, password);
+      console.log('📡 AuthContext: API response:', response);
       
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      console.log('💾 Auth state updated - isAdmin:', response.user.role === 'admin');
-      
-    } else {
-      console.error('❌ AuthContext: Login failed - invalid response');
-      throw new Error(response.error || 'Invalid credentials');
+      if (response.success && response.token && response.user) {
+        console.log('✅ AuthContext: Login successful');
+        console.log('👤 User role from backend:', response.user.role);
+        
+        // Ensure user has name field
+        const userWithName = ensureUserHasName(response.user);
+        
+        setToken(response.token);
+        setUser(userWithName);
+        
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(userWithName));
+        
+        console.log('💾 Auth state updated - user name:', userWithName.name);
+        console.log('💾 Auth state updated - isAdmin:', userWithName.role === 'admin');
+        
+      } else {
+        console.error('❌ AuthContext: Login failed - invalid response');
+        throw new Error(response.error || 'Invalid credentials');
+      }
+    } catch (error: any) {
+      console.error('❌ AuthContext: Login error:', error);
+      const errorMessage = error.message || 'Login failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error: any) {
-    console.error('❌ AuthContext: Login error:', error);
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-
-const register = async (userData: RegisterData): Promise<void> => {
-  setIsLoading(true);
-  setError(null);
-  
-  try {
-    console.log('🔄 AuthContext: Starting registration...', userData);
+  const register = async (userData: RegisterData): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
     
-    const response = await apiService.register(userData);
-    console.log('📡 AuthContext: Registration response:', response);
-    
-    if (response.success && response.token && response.user) {
-      console.log('✅ AuthContext: Registration successful');
+    try {
+      console.log('🔄 AuthContext: Starting registration...', userData);
       
-      setToken(response.token);
-      setUser(response.user);
+      const response = await apiService.register(userData);
+      console.log('📡 AuthContext: Registration response:', response);
       
-      localStorage.setItem('token', response.token);
-      
-    } else {
-      console.error('❌ AuthContext: Registration failed - invalid response');
-      throw new Error(response.error || 'Registration failed');
+      if (response.success && response.token && response.user) {
+        console.log('✅ AuthContext: Registration successful');
+        
+        // Ensure user has name field
+        const userWithName = ensureUserHasName(response.user);
+        
+        setToken(response.token);
+        setUser(userWithName);
+        
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(userWithName));
+        
+        console.log('💾 Registration complete - user name:', userWithName.name);
+        
+      } else {
+        console.error('❌ AuthContext: Registration failed - invalid response');
+        throw new Error(response.error || 'Registration failed');
+      }
+    } catch (error: any) {
+      console.error('❌ AuthContext: Registration error:', error);
+      const errorMessage = error.message || 'Registration failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error: any) {
-    console.error('❌ AuthContext: Registration error:', error);
-    const errorMessage = error.message || 'Registration failed';
-    setError(errorMessage);
-    throw new Error(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const updateUser = async (userData: Partial<User>) => {
     try {
@@ -175,8 +219,10 @@ const register = async (userData: RegisterData): Promise<void> => {
       const response = await apiService.updateProfile(userData);
       
       if (response.success && response.user) {
-        setUser(response.user);
-        console.log('✅ Profile updated successfully');
+        const userWithName = ensureUserHasName(response.user);
+        setUser(userWithName);
+        localStorage.setItem('user', JSON.stringify(userWithName));
+        console.log('✅ Profile updated successfully for:', userWithName.name);
       } else {
         throw new Error(response.error || 'Update failed');
       }
@@ -200,8 +246,10 @@ const register = async (userData: RegisterData): Promise<void> => {
       const response = await apiService.getAllUsers();
       
       if (response.success && response.users) {
-        console.log('✅ Users fetched:', response.users.length);
-        return response.users;
+        // Ensure all users have name fields
+        const usersWithNames = response.users.map(ensureUserHasName);
+        console.log('✅ Users fetched:', usersWithNames.length);
+        return usersWithNames;
       } else {
         throw new Error(response.error || 'Failed to fetch users');
       }
@@ -221,8 +269,9 @@ const register = async (userData: RegisterData): Promise<void> => {
   };
 
   const logout = () => {
-    console.log('🚪 Logging out user');
+    console.log('🚪 Logging out user:', user?.name || user?.email);
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     setError(null);
