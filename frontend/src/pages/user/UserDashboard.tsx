@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, Clock, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, Clock, FileText, AlertCircle, CheckCircle, X, Info } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Layout } from '../../components/shared/Layout';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -37,21 +37,79 @@ const industryInsights = [
   }
 ];
 
+// Score breakdown data for detailed analysis
+const scoreBreakdown = [
+  { 
+    category: 'Payment History', 
+    score: 98, 
+    weight: 35, 
+    impact: 'Excellent',
+    description: 'You consistently make payments on time',
+    color: '#10B981',
+    suggestions: ['Continue making payments on time', 'Set up automatic payments for peace of mind']
+  },
+  { 
+    category: 'Portfolio Quality', 
+    score: 85, 
+    weight: 25, 
+    impact: 'Very Good',
+    description: 'Your creative work shows strong diversity and quality',
+    color: '#3B82F6',
+    suggestions: ['Upload more recent work samples', 'Add client testimonials to strengthen portfolio']
+  },
+  { 
+    category: 'Credit Utilization', 
+    score: 77, 
+    weight: 20, 
+    impact: 'Good',
+    description: 'You use 23% of available credit',
+    color: '#F59E0B',
+    suggestions: ['Keep utilization below 30%', 'Consider requesting a credit limit increase']
+  },
+  { 
+    category: 'Industry Experience', 
+    score: 72, 
+    weight: 15, 
+    impact: 'Good',
+    description: 'Growing track record in fashion industry',
+    color: '#8B5CF6',
+    suggestions: ['Document more industry collaborations', 'Showcase awards or recognition']
+  },
+  { 
+    category: 'Financial Stability', 
+    score: 68, 
+    weight: 5, 
+    impact: 'Fair',
+    description: 'Income shows seasonal variation',
+    color: '#EF4444',
+    suggestions: ['Provide additional income documentation', 'Show diversified revenue streams']
+  }
+];
+
+const pieData = scoreBreakdown.map(item => ({
+  name: item.category,
+  value: item.weight,
+  color: item.color,
+  score: item.score
+}));
+
 export function UserDashboard() {
   const { user } = useAuth();
+  
   type DocumentItem = {
-  id: string;
-  name: string;
-  category: string;
-  status: string;
-  uploadDate: string;
-  size: string;
-  type: string;
-  required: boolean;
-  description: string;
-};
+    id: string;
+    name: string;
+    category: string;
+    status: string;
+    uploadDate: string;
+    size: string;
+    type: string;
+    required: boolean;
+    description: string;
+  };
 
-const [documents, setDocuments] = React.useState<DocumentItem[]>([]);
+  const [documents, setDocuments] = React.useState<DocumentItem[]>([]);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const bankInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +169,11 @@ const [documents, setDocuments] = React.useState<DocumentItem[]>([]);
                     {tier.label}
                   </span>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowBreakdown(true)}
+                >
                   View Detailed Breakdown
                 </Button>
               </div>
@@ -376,31 +438,221 @@ const [documents, setDocuments] = React.useState<DocumentItem[]>([]);
         </Card>
         
         <Card>
-  <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Uploaded Documents</h3>
-  {documents.length === 0 ? (
-    <p className="text-gray-500">No documents uploaded yet.</p>
-  ) : (
-    <ul className="divide-y divide-gray-200">
-      {documents.map(doc => (
-        <li key={doc.id} className="py-2 flex items-center justify-between">
-          <div>
-            <span className="font-medium">{doc.name}</span>
-            <span className="ml-2 text-xs text-gray-500">{doc.category}</span>
-            <span className="ml-2 text-xs text-gray-400">{doc.size}</span>
-          </div>
-          <span className={`px-2 py-1 rounded text-xs ${
-            doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-            doc.status === 'verified' ? 'bg-green-100 text-green-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {doc.status}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )}
-</Card>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Uploaded Documents</h3>
+          {documents.length === 0 ? (
+            <p className="text-gray-500">No documents uploaded yet.</p>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {documents.map(doc => (
+                <li key={doc.id} className="py-2 flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">{doc.name}</span>
+                    <span className="ml-2 text-xs text-gray-500">{doc.category}</span>
+                    <span className="ml-2 text-xs text-gray-400">{doc.size}</span>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    doc.status === 'verified' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {doc.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
+
+      {/* Detailed Breakdown Modal */}
+      <AnimatePresence>
+        {showBreakdown && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowBreakdown(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Credit Score Breakdown</h2>
+                  <p className="text-gray-600">Understanding your score of {creditScore}</p>
+                </div>
+                <button
+                  onClick={() => setShowBreakdown(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={24} className="text-gray-500" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Score Composition Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Score Composition</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}%`}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => [`${value}%`, 'Weight']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Card>
+
+                  <Card>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Performance</h3>
+                    <div className="text-center">
+                      <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full text-3xl font-bold ${getScoreColor(creditScore)} bg-gray-50`}>
+                        {creditScore}
+                      </div>
+                      <div className="mt-4">
+                        <span className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${tier.color}`}>
+                          {tier.label}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 mt-2">
+                        You're in the top 25% of creative professionals
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Category Breakdown */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Analysis</h3>
+                  <div className="space-y-4">
+                    {scoreBreakdown.map((category, index) => (
+                      <motion.div
+                        key={category.category}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-4 border border-gray-200 rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <h4 className="font-semibold text-gray-900">{category.category}</h4>
+                            <span className="text-sm text-gray-500">({category.weight}% weight)</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-lg font-bold ${
+                              category.score >= 80 ? 'text-green-600' :
+                              category.score >= 60 ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              {category.score}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              category.impact === 'Excellent' ? 'bg-green-100 text-green-800' :
+                              category.impact === 'Very Good' ? 'bg-blue-100 text-blue-800' :
+                              category.impact === 'Good' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {category.impact}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mb-3">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full transition-all duration-500"
+                              style={{ 
+                                width: `${category.score}%`,
+                                backgroundColor: category.color
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-3">{category.description}</p>
+
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <div className="flex items-start space-x-2">
+                            <Info size={16} className="text-blue-600 mt-0.5" />
+                            <div>
+                              <h5 className="text-sm font-medium text-blue-900 mb-1">Improvement Tips:</h5>
+                              <ul className="text-sm text-blue-800 space-y-1">
+                                {category.suggestions.map((suggestion, idx) => (
+                                  <li key={idx} className="flex items-start space-x-1">
+                                    <span className="text-blue-600">•</span>
+                                    <span>{suggestion}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Action Plan */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Action Plan</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                      <CheckCircle size={20} className="text-green-600" />
+                      <span className="text-sm text-green-800">Continue making on-time payments to maintain excellent payment history</span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                      <TrendingUp size={20} className="text-blue-600" />
+                      <span className="text-sm text-blue-800">Upload 2-3 recent portfolio pieces to boost your score by 10-15 points</span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
+                      <AlertCircle size={20} className="text-yellow-600" />
+                      <span className="text-sm text-yellow-800">Reduce credit utilization to under 20% for optimal scoring</span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Last updated: {new Date().toLocaleDateString()}
+                  </p>
+                  <div className="space-x-3">
+                    <Button variant="outline" onClick={() => setShowBreakdown(false)}>
+                      Close
+                    </Button>
+                    <Button variant="primary">
+                      Schedule Consultation
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Chatbot />
     </Layout>
   );
