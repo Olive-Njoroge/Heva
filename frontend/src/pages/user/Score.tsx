@@ -225,7 +225,7 @@ export function Score() {
           </div>
         </div>
 
-        {/* Score Calculator */}
+        {/* Score Calculator - Now functional */}
         {showCalculator && (
           <Card>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">What-If Score Calculator</h3>
@@ -235,11 +235,19 @@ export function Score() {
               <div className="space-y-4">
                 {Object.entries(calculatorValues).map(([key, value]) => {
                   const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                  const weight = key === 'paymentHistory' ? 35 : 
+                               key === 'portfolioPerformance' ? 25 :
+                               key === 'industryStability' ? 20 :
+                               key === 'businessGrowth' ? 15 : 5;
+                  
                   return (
-                    <div key={key}>
+                    <div key={key} className="p-4 border border-gray-200 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
                         <label className="text-sm font-medium text-gray-700">{label}</label>
-                        <span className="text-sm text-gray-600">{value}%</span>
+                        <div className="text-right">
+                          <span className="text-sm text-gray-600">{value}%</span>
+                          <div className="text-xs text-gray-500">({weight}% weight)</div>
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -247,22 +255,65 @@ export function Score() {
                         max="100"
                         value={value}
                         onChange={(e) => setCalculatorValues(prev => ({ ...prev, [key]: parseInt(e.target.value) }))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                      </div>
                     </div>
                   );
                 })}
               </div>
               
               <div className="flex items-center justify-center">
-                <div className="text-center">
+                <div className="text-center p-6 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-4xl font-bold text-blue-600 mb-2">
                     {calculateEstimatedScore()}
                   </div>
-                  <div className="text-sm text-gray-600">Estimated Score</div>
-                  <div className="mt-4 text-xs text-gray-500">
-                    Difference: {calculateEstimatedScore() - currentScore > 0 ? '+' : ''}{calculateEstimatedScore() - currentScore} points
+                  <div className="text-sm text-gray-600 mb-2">Estimated Score</div>
+                  <div className={`text-lg font-medium ${
+                    calculateEstimatedScore() - currentScore > 0 ? 'text-green-600' : 
+                    calculateEstimatedScore() - currentScore < 0 ? 'text-red-600' : 'text-gray-600'
+                  }`}>
+                    {calculateEstimatedScore() - currentScore > 0 ? '+' : ''}{calculateEstimatedScore() - currentScore} points
                   </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    vs. current score of {currentScore}
+                  </div>
+                  
+                  {/* Reset button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => setCalculatorValues({
+                      paymentHistory: 92,
+                      portfolioPerformance: 78,
+                      industryStability: 68,
+                      businessGrowth: 85,
+                      riskFactors: 90
+                    })}
+                  >
+                    Reset to Current
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Calculator insights */}
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <Info size={16} className="text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-900 mb-1">Calculator Tips:</h4>
+                  <ul className="text-sm text-yellow-800 space-y-1">
+                    <li>• Payment History has the highest impact (35% weight)</li>
+                    <li>• Portfolio Performance is your second biggest factor (25% weight)</li>
+                    <li>• These are estimates - actual scores may vary based on additional factors</li>
+                    <li>• Use this tool to prioritize which areas to improve first</li>
+                  </ul>
                 </div>
               </div>
             </div>
