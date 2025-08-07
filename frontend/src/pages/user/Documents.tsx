@@ -17,6 +17,12 @@ interface DocumentItem {
   description: string;
 }
 
+interface DocumentTemplate {
+  name: string;
+  category: string;
+  id: string;
+}
+
 const documentCategories = [
   {
     name: 'Financial Documents',
@@ -104,6 +110,8 @@ export function Documents() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [replaceModalOpen, setReplaceModalOpen] = useState(false);
+  const [documentToReplace, setDocumentToReplace] = useState<DocumentItem | null>(null);
 
   const filteredDocuments = selectedCategory === 'all' 
     ? documents 
@@ -163,6 +171,76 @@ export function Documents() {
     setUploadModalOpen(false);
   };
 
+  const handleReplaceDocument = (files: FileList | null) => {
+    if (!files || !documentToReplace) return;
+    
+    const file = files[0]; // Take only the first file for replacement
+    
+    // Create updated document with new file info but keep original metadata
+    const updatedDoc: DocumentItem = {
+      ...documentToReplace,
+      name: file.name,
+      uploadDate: new Date().toISOString().split('T')[0],
+      size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+      type: file.name.split('.').pop()?.toUpperCase() || 'Unknown',
+      status: 'pending', // Reset status to pending after replacement
+      description: `Replaced document - ${documentToReplace.description}`
+    };
+    
+    // Update the documents array
+    setDocuments(prev => prev.map(doc => 
+      doc.id === documentToReplace.id ? updatedDoc : doc
+    ));
+    
+    // Close modals and reset state
+    setReplaceModalOpen(false);
+    setDocumentToReplace(null);
+    setSelectedDocument(null);
+    
+    // Show success message
+    alert(`Document "${file.name}" has been uploaded successfully and is pending verification.`);
+  };
+
+  // New handlers for required document uploads
+  const handleRequiredDocUpload = (docTemplate: DocumentTemplate) => {
+    const fileInput = document.getElementById(`upload-${docTemplate.id}`) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
+  const handleRequiredDocFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>, 
+    docTemplate: DocumentTemplate
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Create a new document object for the required document
+    const newDoc: DocumentItem = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      name: `${docTemplate.name} - ${file.name}`,
+      category: docTemplate.category,
+      status: 'pending',
+      uploadDate: new Date().toISOString().split('T')[0],
+      size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+      type: file.name.split('.').pop()?.toUpperCase() || 'Unknown',
+      required: true, // Mark as required document
+      description: `Required document: ${docTemplate.name}`
+    };
+    
+    // Add to documents state
+    setDocuments(prev => [...prev, newDoc]);
+    
+    // Clear the input for future uploads
+    e.target.value = '';
+    
+    // Show success message
+    alert(`"${docTemplate.name}" has been uploaded successfully and is pending verification.`);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
@@ -176,11 +254,27 @@ export function Documents() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    handleFileUpload(e.dataTransfer.files);
+    
+    if (replaceModalOpen) {
+      handleReplaceDocument(e.dataTransfer.files);
+    } else {
+      handleFileUpload(e.dataTransfer.files);
+    }
   };
 
   const handleDelete = (id: string) => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
+  };
+
+  const openReplaceModal = (document: DocumentItem) => {
+    setDocumentToReplace(document);
+    setReplaceModalOpen(true);
+  };
+
+  const handleDownload = (document: DocumentItem) => {
+    // Simulate download functionality
+    alert(`Downloading ${document.name}...`);
+    // In a real app, this would trigger an actual file download
   };
 
   const stats = getCompletionStats();
@@ -265,31 +359,77 @@ export function Documents() {
           </div>
         </Card>
 
-        {/* Required Documents Checklist */}
+        {/* Required Documents Checklist - NOW FUNCTIONAL */}
         <Card>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Required Documents Checklist</h3>
           <div className="space-y-3">
             {[
-              'Bank Statement (Last 3 months)',
-              'Business Registration Certificate',
-              'Tax Return (Previous year)',
-              'Identity Verification Document',
-              'Proof of Business Address'
-            ].map((docName, index) => {
-              const isCompleted = index < 3; // Mock completion status
+              { name: 'Bank Statement (Last 3 months)', category: 'financial', id: 'bank-statement' },
+              { name: 'Business Registration Certificate', category: 'legal', id: 'business-reg' },
+              { name: 'Tax Return (Previous year)', category: 'financial', id: 'tax-return' },
+              { name: 'Identity Verification Document', category: 'legal', id: 'identity-doc' },
+              { name: 'Proof of Business Address', category: 'legal', id: 'address-proof' }
+            ].map((docTemplate, index) => {
+              // Check if this required document exists in uploaded documents
+              const existingDoc = documents.find(doc => 
+                doc.required && 
+                doc.name.toLowerCase().includes(docTemplate.name.toLowerCase().split(' ')[0].toLowerCase())
+              );
+              const isCompleted = !!existingDoc && existingDoc.status === 'verified';
+              
               return (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                  }`}>
-                    {isCompleted && <CheckCircle size={12} className="text-white" />}
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                    }`}>
+                      {isCompleted && <CheckCircle size={12} className="text-white" />}
+                    </div>
+                    <div>
+                      <span className={`text-sm ${isCompleted ? 'text-gray-900' : 'text-gray-500'}`}>
+                        {docTemplate.name}
+                      </span>
+                      {existingDoc && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Status: <span className={`font-medium ${
+                            existingDoc.status === 'verified' ? 'text-green-600' :
+                            existingDoc.status === 'pending' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {existingDoc.status}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-sm ${isCompleted ? 'text-gray-900' : 'text-gray-500'}`}>
-                    {docName}
-                  </span>
+                  
                   {!isCompleted && (
-                    <Button variant="outline" size="sm">
-                      Upload
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleRequiredDocUpload(docTemplate)}
+                      >
+                        Upload
+                      </Button>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                        style={{ display: 'none' }}
+                        id={`upload-${docTemplate.id}`}
+                        onChange={(e) => handleRequiredDocFileChange(e, docTemplate)}
+                      />
+                    </div>
+                  )}
+                  
+                  {existingDoc && existingDoc.status === 'rejected' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => openReplaceModal(existingDoc)}
+                    >
+                      Replace
                     </Button>
                   )}
                 </div>
@@ -343,7 +483,11 @@ export function Documents() {
                     >
                       <Eye size={14} />
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDownload(document)}
+                    >
                       <Download size={14} />
                     </Button>
                     <Button
@@ -362,7 +506,12 @@ export function Documents() {
                   <p className="text-sm text-red-700">
                     <strong>Rejection Reason:</strong> Document quality is unclear. Please upload a higher resolution version.
                   </p>
-                  <Button variant="outline" size="sm" className="mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => openReplaceModal(document)}
+                  >
                     Replace Document
                   </Button>
                 </div>
@@ -418,33 +567,102 @@ export function Documents() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-
               <Upload size={32} className="text-gray-400 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">
-        Drag and drop your files here
-      </h3>
-      <p className="text-gray-600 mb-4">
-        or click to browse your computer
-      </p>
-      <input
-        type="file"
-        multiple
-        accept=".pdf,.png,.jpg,.jpeg,.zip,.doc,.docx"
-        onChange={(e) => handleFileUpload(e.target.files)}
-        className="hidden"
-        id="file-upload"
-      />
-      <label htmlFor="file-upload">
-        <Button variant="outline" size="lg" className="cursor-pointer">
-          Choose Files
-        </Button>
-      </label>
-      <p className="text-xs text-gray-500 mt-4">
-        Supported formats: PDF, PNG, JPG, ZIP, DOC, DOCX (Max 10MB each)
-      </p>
-    </div>
-  </div>
-</Modal>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Drag and drop your files here
+              </h3>
+              <p className="text-gray-600 mb-4">
+                or click to browse your computer
+              </p>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg,.zip,.doc,.docx"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload">
+                <Button variant="outline" size="lg" className="cursor-pointer">
+                  Choose Files
+                </Button>
+              </label>
+              <p className="text-xs text-gray-500 mt-4">
+                Supported formats: PDF, PNG, JPG, ZIP, DOC, DOCX (Max 10MB each)
+              </p>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Replace Document Modal */}
+        <Modal
+          isOpen={replaceModalOpen}
+          onClose={() => {
+            setReplaceModalOpen(false);
+            setDocumentToReplace(null);
+          }}
+          title="Replace Document"
+          size="lg"
+        >
+          <div className="space-y-6">
+            {documentToReplace && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h3 className="font-medium text-yellow-900 mb-2">Replacing Document:</h3>
+                <p className="text-sm text-yellow-800">{documentToReplace.name}</p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Category: {documentCategories.find(c => c.key === documentToReplace.category)?.name}
+                </p>
+              </div>
+            )}
+
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <Upload size={32} className="text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Drop your replacement file here
+              </h3>
+              <p className="text-gray-600 mb-4">
+                or click to browse your computer
+              </p>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.zip,.doc,.docx"
+                onChange={(e) => handleReplaceDocument(e.target.files)}
+                className="hidden"
+                id="replace-file-upload"
+              />
+              <label htmlFor="replace-file-upload">
+                <Button variant="outline" size="lg" className="cursor-pointer">
+                  Choose Replacement File
+                </Button>
+              </label>
+              <p className="text-xs text-gray-500 mt-4">
+                Supported formats: PDF, PNG, JPG, ZIP, DOC, DOCX (Max 10MB each)
+              </p>
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <AlertCircle size={16} className="text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900 mb-1">Important Notes:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• The new file will replace the existing document completely</li>
+                    <li>• The document status will be reset to "Pending" for re-verification</li>
+                    <li>• Make sure the new file is clear and meets all requirements</li>
+                    <li>• You can only upload one replacement file at a time</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
 
         {/* Document Details Modal */}
         <Modal
@@ -513,11 +731,21 @@ export function Documents() {
               </div>
 
               <div className="flex space-x-3 pt-4 border-t border-gray-200">
-                <Button variant="primary" className="flex-1">
+                <Button 
+                  variant="primary" 
+                  className="flex-1"
+                  onClick={() => handleDownload(selectedDocument)}
+                >
                   <Download size={16} className="mr-2" />
                   Download
                 </Button>
-                <Button variant="outline" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    openReplaceModal(selectedDocument);
+                  }}
+                >
                   Replace
                 </Button>
                 <Button 
