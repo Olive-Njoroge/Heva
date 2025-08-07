@@ -12,6 +12,8 @@ export function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [formData, setFormData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     name: user?.name || '',
     email: user?.email || '',
     businessName: user?.businessName || '',
@@ -31,6 +33,8 @@ export function Profile() {
   useEffect(() => {
     if (user) {
       setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         name: user.name || '',
         email: user.email || '',
         businessName: user.businessName || '',
@@ -62,7 +66,18 @@ export function Profile() {
   ];
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // If firstName or lastName changes, update the combined name
+      if (field === 'firstName' || field === 'lastName') {
+        const firstName = field === 'firstName' ? value : prev.firstName;
+        const lastName = field === 'lastName' ? value : prev.lastName;
+        newData.name = `${firstName} ${lastName}`.trim();
+      }
+      
+      return newData;
+    });
     setHasChanges(true);
     setSaveMessage(''); // Clear any previous save messages
   };
@@ -72,24 +87,26 @@ export function Profile() {
     setSaveMessage('');
 
     try {
-      // Update the user data
-      const success = await updateUser({
+      console.log('🔄 Saving profile data:', formData);
+      
+      // The updateUser function doesn't return a boolean, it throws on error
+      await updateUser({
         ...formData,
         lastActivity: new Date().toISOString()
       });
 
-      if (success) {
-        setIsEditing(false);
-        setHasChanges(false);
-        setSaveMessage('Profile updated successfully!');
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setSaveMessage(''), 3000);
-      } else {
-        setSaveMessage('Failed to update profile. Please try again.');
-      }
+      // If we get here, the update was successful
+      console.log('✅ Profile saved successfully');
+      setIsEditing(false);
+      setHasChanges(false);
+      setSaveMessage('Profile updated successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveMessage(''), 3000);
+      
     } catch (error) {
-      setSaveMessage('An error occurred while saving. Please try again.');
+      console.error('❌ Error saving profile:', error);
+      setSaveMessage(error instanceof Error ? error.message : 'An error occurred while saving. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -103,6 +120,8 @@ export function Profile() {
     // Reset form data to original user data
     if (user) {
       setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         name: user.name || '',
         email: user.email || '',
         businessName: user.businessName || '',
@@ -123,7 +142,7 @@ export function Profile() {
   // Calculate profile completion percentage
   const calculateProfileCompletion = () => {
     const requiredFields = [
-      'name', 'email', 'businessName', 'industry', 'location', 'bio'
+      'firstName', 'lastName', 'email', 'businessName', 'industry', 'location', 'bio'
     ];
     const optionalFields = [
       'phone', 'website', 'instagram', 'linkedin'
@@ -191,7 +210,14 @@ export function Profile() {
               ? 'bg-green-50 border border-green-200 text-green-700' 
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}>
-            {saveMessage}
+            <div className="flex items-center">
+              {saveMessage.includes('successfully') ? (
+                <CheckCircle size={16} className="mr-2" />
+              ) : (
+                <Circle size={16} className="mr-2" />
+              )}
+              {saveMessage}
+            </div>
           </div>
         )}
 
@@ -202,7 +228,11 @@ export function Profile() {
               <User size={32} className="text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">{formData.name || 'Name not set'}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {formData.name || formData.firstName || formData.lastName 
+                  ? `${formData.firstName} ${formData.lastName}`.trim() 
+                  : 'Name not set'}
+              </h2>
               <p className="text-gray-600">{formData.businessName || 'Business name not set'}</p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                 <div className="flex items-center space-x-1">
@@ -235,12 +265,25 @@ export function Profile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+                First Name *
               </label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name *
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
               />
@@ -273,7 +316,7 @@ export function Profile() {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Location *
               </label>
@@ -442,8 +485,8 @@ export function Profile() {
             </div>
             
             <div className="mt-4 space-y-2 text-sm">
-              <div className={`flex items-center ${formData.name && formData.email ? 'text-green-600' : 'text-gray-400'}`}>
-                {formData.name && formData.email ? (
+              <div className={`flex items-center ${formData.firstName && formData.lastName && formData.email ? 'text-green-600' : 'text-gray-400'}`}>
+                {formData.firstName && formData.lastName && formData.email ? (
                   <CheckCircle size={16} className="mr-2" />
                 ) : (
                   <Circle size={16} className="mr-2" />
@@ -477,6 +520,20 @@ export function Profile() {
             </div>
           </div>
         </Card>
+
+        {/* Debug Information (Remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Debug Information</h3>
+            <div className="text-sm bg-gray-50 p-4 rounded">
+              <p><strong>User Name:</strong> {user?.name}</p>
+              <p><strong>Form Data Name:</strong> {formData.name}</p>
+              <p><strong>Has Changes:</strong> {hasChanges ? 'Yes' : 'No'}</p>
+              <p><strong>Is Saving:</strong> {isSaving ? 'Yes' : 'No'}</p>
+              <p><strong>Save Message:</strong> {saveMessage}</p>
+            </div>
+          </Card>
+        )}
       </div>
     </Layout>
   );
